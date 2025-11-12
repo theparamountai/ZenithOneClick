@@ -1,0 +1,182 @@
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { ArrowLeft, ArrowDownCircle, ArrowUpCircle, ArrowRightCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
+import { Loader2 } from "lucide-react";
+
+interface Transaction {
+  id: string;
+  transaction_type: string;
+  amount: number;
+  description: string;
+  balance_after: number;
+  created_at: string;
+}
+
+const TransactionHistory = () => {
+  const { accountNumber } = useParams();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [accountType, setAccountType] = useState("");
+
+  useEffect(() => {
+    loadTransactions();
+  }, [accountNumber]);
+
+  const loadTransactions = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate('/auth');
+        return;
+      }
+
+      // Get account details
+      const { data: accountData, error: accountError } = await supabase
+        .from('bank_accounts')
+        .select('*')
+        .eq('account_number', accountNumber)
+        .eq('user_id', user.id)
+        .single();
+
+      if (accountError) throw accountError;
+
+      setAccountType(accountData.account_type);
+
+      // Get transactions
+      const { data: transactionsData, error: transactionsError } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('account_id', accountData.id)
+        .order('created_at', { ascending: false });
+
+      if (transactionsError) throw transactionsError;
+
+      setTransactions(transactionsData || []);
+    } catch (error) {
+      console.error('Error loading transactions:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load transaction history",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getTransactionIcon = (type: string) => {
+    switch (type) {
+      case 'deposit':
+        return <ArrowDownCircle className="h-5 w-5 text-green-500" />;
+      case 'withdrawal':
+        return <ArrowUpCircle className="h-5 w-5 text-red-500" />;
+      case 'transfer':
+        return <ArrowRightCircle className="h-5 w-5 text-blue-500" />;
+      default:
+        return <ArrowRightCircle className="h-5 w-5 text-muted-foreground" />;
+    }
+  };
+
+  const getTransactionColor = (type: string) => {
+    switch (type) {
+      case 'deposit':
+        return 'text-green-600';
+      case 'withdrawal':
+      case 'transfer':
+        return 'text-red-600';
+      default:
+        return 'text-foreground';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center pt-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background pt-20">
+      {/* Header */}
+      <div className="border-b bg-card">
+        <div className="container mx-auto px-4 py-4 flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(`/bank-account/${accountNumber}`)}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Transaction History</h1>
+            <p className="text-sm text-muted-foreground">
+              Account: {accountNumber} • {accountType.charAt(0).toUpperCase() + accountType.slice(1)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-8">
+        {transactions.length === 0 ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground mb-4">No transactions yet</p>
+              <p className="text-sm text-muted-foreground">
+                Your transaction history will appear here once you start using your account.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>All Transactions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {transactions.map((transaction) => (
+                  <div
+                    key={transaction.id}
+                    className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                  >
+                    <div className="mt-1">
+                      {getTransactionIcon(transaction.transaction_type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-foreground capitalize">
+                        {transaction.transaction_type}
+                      </p>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {transaction.description}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {new Date(transaction.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className={`font-bold ${getTransactionColor(transaction.transaction_type)}`}>
+                        {transaction.amount >= 0 ? '+' : ''}₦{Math.abs(transaction.amount).toLocaleString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Balance: ₦{transaction.balance_after.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default TransactionHistory;
