@@ -4,9 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mic, Send, Loader2, CheckCircle, XCircle, TrendingUp, DollarSign } from "lucide-react";
+import { Mic, Send, Loader2, CheckCircle, XCircle, TrendingUp, DollarSign, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { audioPlayer } from "@/utils/audioPlayer";
 
 interface Message {
   role: "user" | "assistant";
@@ -45,6 +48,8 @@ const LoanChatInterface = ({ accountNumber }: LoanChatInterfaceProps) => {
     loanPurpose?: string;
     loanTermMonths?: number;
   }>({});
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [autoSpeak, setAutoSpeak] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
@@ -124,20 +129,37 @@ const LoanChatInterface = ({ accountNumber }: LoanChatInterfaceProps) => {
           content: resultMessage
         }]);
 
+        // Speak the analysis result if auto-speak is enabled
+        if (autoSpeak) {
+          await speakResponse(resultMessage);
+        }
+
         if (data.analysis.recommendations && data.analysis.recommendations.length > 0) {
+          const recoText = `Recommendations:\n${data.analysis.recommendations.map((r: string) => `• ${r}`).join('\n')}`;
           setMessages(prev => [...prev, {
             role: "assistant",
-            content: `Recommendations:\n${data.analysis.recommendations.map((r: string) => `• ${r}`).join('\n')}`
+            content: recoText
           }]);
+
+          // Speak recommendations if auto-speak is enabled
+          if (autoSpeak) {
+            await speakResponse(recoText);
+          }
         }
       }
     } catch (error) {
       console.error("Error analyzing loan:", error);
       toast.error("Failed to analyze loan eligibility");
+      const errorMsg = "I apologize, but I encountered an error analyzing your loan request. Please try again.";
       setMessages(prev => [...prev, {
         role: "assistant",
-        content: "I apologize, but I encountered an error analyzing your loan request. Please try again."
+        content: errorMsg
       }]);
+      
+      // Speak the error message if auto-speak is enabled
+      if (autoSpeak) {
+        await speakResponse(errorMsg);
+      }
     }
   };
 
@@ -154,10 +176,16 @@ const LoanChatInterface = ({ accountNumber }: LoanChatInterfaceProps) => {
       const extracted = await extractLoanIntent(userMessage);
       
       if (!extracted || !extracted.loanAmount) {
+        const errorMsg = "I couldn't understand the loan amount. Please specify the amount you need. For example: 'I need ₦20,000 for business'";
         setMessages(prev => [...prev, {
           role: "assistant",
-          content: "I couldn't understand the loan amount. Please specify the amount you need. For example: 'I need ₦20,000 for business'"
+          content: errorMsg
         }]);
+        
+        // Speak the error message if auto-speak is enabled
+        if (autoSpeak) {
+          await speakResponse(errorMsg);
+        }
         return;
       }
 
@@ -175,6 +203,25 @@ const LoanChatInterface = ({ accountNumber }: LoanChatInterfaceProps) => {
       toast.error("Failed to process your request");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const speakResponse = async (text: string) => {
+    try {
+      setIsSpeaking(true);
+      const { data, error } = await supabase.functions.invoke('tts-agent', {
+        body: { text, voice: 'alloy' }
+      });
+
+      if (error) throw error;
+
+      if (data?.audioContent) {
+        await audioPlayer.play(data.audioContent);
+      }
+    } catch (error) {
+      console.error('Error speaking response:', error);
+    } finally {
+      setIsSpeaking(false);
     }
   };
 
@@ -254,8 +301,24 @@ const LoanChatInterface = ({ accountNumber }: LoanChatInterfaceProps) => {
 
   return (
     <div className="space-y-6">
-      <Card className="max-h-[500px] overflow-y-auto">
-        <CardContent className="pt-6 space-y-4">
+      <Card>
+        <div className="p-3 border-b bg-muted/30 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="auto-speak" className="text-sm">Auto-speak responses</Label>
+            <Switch
+              id="auto-speak"
+              checked={autoSpeak}
+              onCheckedChange={setAutoSpeak}
+            />
+          </div>
+          {isSpeaking && (
+            <div className="flex items-center gap-2 text-sm text-primary">
+              <Volume2 className="h-4 w-4 animate-pulse" />
+              Speaking...
+            </div>
+          )}
+        </div>
+        <CardContent className="pt-6 space-y-4 max-h-[400px] overflow-y-auto">
           {messages.map((message, index) => (
             <div
               key={index}
