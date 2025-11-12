@@ -2,9 +2,12 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Send, Mic, MicOff } from "lucide-react";
+import { Send, Mic, MicOff, Volume2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { audioPlayer } from "@/utils/audioPlayer";
 
 interface Message {
   role: "user" | "assistant";
@@ -25,7 +28,11 @@ export default function CardChatInterface({ onIntentDetected }: CardChatInterfac
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [autoSpeak, setAutoSpeak] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const navigate = useNavigate();
 
   const scrollToBottom = () => {
@@ -53,6 +60,11 @@ export default function CardChatInterface({ onIntentDetected }: CardChatInterfac
 
       const aiResponse = data.message;
       setMessages(prev => [...prev, { role: "assistant", content: aiResponse }]);
+
+      // Speak the response if auto-speak is enabled
+      if (autoSpeak) {
+        await speakResponse(aiResponse);
+      }
 
       // Try to parse intent
       try {
@@ -85,31 +97,112 @@ export default function CardChatInterface({ onIntentDetected }: CardChatInterfac
     }
   };
 
+  const speakResponse = async (text: string) => {
+    try {
+      setIsSpeaking(true);
+      const { data, error } = await supabase.functions.invoke('tts-agent', {
+        body: { text, voice: 'alloy' }
+      });
+
+      if (error) throw error;
+
+      if (data?.audioContent) {
+        await audioPlayer.play(data.audioContent);
+      }
+    } catch (error) {
+      console.error('Error speaking response:', error);
+    } finally {
+      setIsSpeaking(false);
+    }
+  };
+
   const handleVoiceInput = async () => {
     if (isListening) {
+      // Stop recording
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        mediaRecorderRef.current.stop();
+      }
       setIsListening(false);
-      toast.info("Voice input stopped");
       return;
     }
 
-    setIsListening(true);
-    toast.info("Voice input started - speak now");
-
     try {
-      // Simulate voice input for demo
-      setTimeout(() => {
-        setIsListening(false);
-        toast.info("Voice input feature coming soon");
-      }, 2000);
+      // Start recording
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        stream.getTracks().forEach(track => track.stop());
+        
+        // Convert to base64 and send to STT
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = async () => {
+          const base64Audio = reader.result?.toString().split(',')[1];
+          if (base64Audio) {
+            await processVoiceInput(base64Audio);
+          }
+        };
+      };
+
+      mediaRecorder.start();
+      setIsListening(true);
+      toast.info("Recording... Click again to stop");
     } catch (error) {
       console.error("Voice input error:", error);
-      setIsListening(false);
-      toast.error("Voice input failed");
+      toast.error("Failed to access microphone");
+    }
+  };
+
+  const processVoiceInput = async (audioBase64: string) => {
+    try {
+      toast.info("Transcribing audio...");
+      
+      const { data, error } = await supabase.functions.invoke('stt-agent', {
+        body: { audio: audioBase64 }
+      });
+
+      if (error) throw error;
+
+      if (data?.text) {
+        setInput(data.text);
+        toast.success("Transcription complete!");
+      }
+    } catch (error) {
+      console.error("Transcription error:", error);
+      toast.error("Failed to transcribe audio");
     }
   };
 
   return (
     <div className="flex flex-col h-full">
+      {/* Voice Controls */}
+      <div className="p-3 border-b bg-muted/30 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Label htmlFor="auto-speak-card" className="text-sm">Auto-speak responses</Label>
+          <Switch
+            id="auto-speak-card"
+            checked={autoSpeak}
+            onCheckedChange={setAutoSpeak}
+          />
+        </div>
+        {isSpeaking && (
+          <div className="flex items-center gap-2 text-sm text-primary">
+            <Volume2 className="h-4 w-4 animate-pulse" />
+            Speaking...
+          </div>
+        )}
+      </div>
+
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message, index) => (
           <div
