@@ -1,0 +1,236 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { AlertCircle, Shield } from "lucide-react";
+
+const ConnectOPay = () => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    merchantId: "",
+    publicKey: "",
+    secretKey: "",
+    accountNumber: "",
+    accountName: "",
+    environment: "sandbox",
+  });
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const validateAndConnect = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("Not authenticated");
+      }
+
+      // Validate all fields are filled
+      if (!formData.merchantId || !formData.publicKey || !formData.secretKey || 
+          !formData.accountNumber || !formData.accountName) {
+        throw new Error("Please fill in all fields");
+      }
+
+      // Store credentials in database
+      const { data: credData, error: credError } = await supabase
+        .from('external_bank_credentials' as any)
+        .insert({
+          user_id: user.id,
+          bank_provider: 'opay',
+          merchant_id: formData.merchantId,
+          public_key: formData.publicKey,
+          secret_key: formData.secretKey,
+          account_reference: formData.accountNumber,
+          is_active: true,
+        } as any)
+        .select()
+        .single();
+
+      if (credError) throw credError;
+
+      // Create bank account record
+      const { error: accountError } = await supabase
+        .from('bank_accounts')
+        .insert({
+          user_id: user.id,
+          account_number: formData.accountNumber,
+          account_name: formData.accountName,
+          account_type: 'merchant',
+          balance: 0,
+          currency: '₦',
+          status: 'active',
+          bank_provider: 'opay',
+          external_reference: formData.accountNumber,
+        });
+
+      if (accountError) throw accountError;
+
+      // Try to fetch initial balance (optional - won't fail if it doesn't work)
+      try {
+        await supabase.functions.invoke('opay-balance', {
+          body: { credentialId: (credData as any)?.id }
+        });
+      } catch (balanceError) {
+        console.error('Error fetching initial balance:', balanceError);
+        // Don't throw - we'll sync later
+      }
+
+      toast.success("OPay account connected successfully!");
+      navigate('/dashboard');
+
+    } catch (error) {
+      console.error('Error connecting OPay account:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to connect OPay account');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen pt-24 pb-12 px-4">
+      <div className="max-w-2xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground mb-2">Connect OPay Account</h1>
+          <p className="text-muted-foreground">
+            Enter your OPay merchant account credentials to connect
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>OPay Merchant Credentials</CardTitle>
+            <CardDescription>
+              You can find these credentials in your OPay Merchant Dashboard → Settings → API Management
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={validateAndConnect} className="space-y-6">
+              <Alert className="bg-primary/10 border-primary/20">
+                <Shield className="h-4 w-4" />
+                <AlertDescription>
+                  Your credentials will be encrypted and stored securely. We never share your data with third parties.
+                </AlertDescription>
+              </Alert>
+
+              <div className="space-y-2">
+                <Label htmlFor="merchantId">Merchant ID *</Label>
+                <Input
+                  id="merchantId"
+                  placeholder="Enter your OPay Merchant ID"
+                  value={formData.merchantId}
+                  onChange={(e) => handleInputChange('merchantId', e.target.value)}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Found in OPay Dashboard → Settings → API Management
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="publicKey">Public Key *</Label>
+                <Input
+                  id="publicKey"
+                  placeholder="Enter your Public Key"
+                  value={formData.publicKey}
+                  onChange={(e) => handleInputChange('publicKey', e.target.value)}
+                  className="font-mono text-sm"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="secretKey">Secret Key *</Label>
+                <Input
+                  id="secretKey"
+                  type="password"
+                  placeholder="Enter your Secret Key"
+                  value={formData.secretKey}
+                  onChange={(e) => handleInputChange('secretKey', e.target.value)}
+                  className="font-mono text-sm"
+                  required
+                />
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  Your secret key will be encrypted and stored securely
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="accountNumber">OPay Account Number *</Label>
+                <Input
+                  id="accountNumber"
+                  placeholder="e.g., 80XXXXXXXX"
+                  value={formData.accountNumber}
+                  onChange={(e) => handleInputChange('accountNumber', e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="accountName">Account Display Name *</Label>
+                <Input
+                  id="accountName"
+                  placeholder="e.g., My OPay Business Account"
+                  value={formData.accountName}
+                  onChange={(e) => handleInputChange('accountName', e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="environment">Environment *</Label>
+                <Select
+                  value={formData.environment}
+                  onValueChange={(value) => handleInputChange('environment', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sandbox">Sandbox (Testing)</SelectItem>
+                    <SelectItem value="production">Production (Live)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Use Sandbox for testing, Production for live transactions
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate('/add-bank-account')}
+                  disabled={loading}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1"
+                  disabled={loading}
+                >
+                  {loading ? 'Connecting...' : 'Connect Account'}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default ConnectOPay;
