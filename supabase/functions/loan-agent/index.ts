@@ -18,20 +18,23 @@ serve(async (req) => {
     console.log('Loan agent request:', { accountNumber, loanAmount, loanPurpose, loanTermMonths });
 
     const authHeader = req.headers.get('Authorization')!;
-    const supabaseClient = createClient(
+    const token = authHeader.replace('Bearer ', '');
+    
+    // Create client with service role key for backend operations
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Get user from auth
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    // Verify the JWT and get user
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
     if (userError || !user) {
+      console.error('Auth error:', userError);
       throw new Error('Unauthorized');
     }
 
-    // Fetch bank account details
-    const { data: account, error: accountError } = await supabaseClient
+    // Fetch bank account details using admin client
+    const { data: account, error: accountError } = await supabaseAdmin
       .from('bank_accounts')
       .select('*')
       .eq('account_number', accountNumber)
@@ -45,8 +48,8 @@ serve(async (req) => {
 
     console.log('Account details:', account);
 
-    // Fetch transaction history
-    const { data: transactions, error: transactionsError } = await supabaseClient
+    // Fetch transaction history using admin client
+    const { data: transactions, error: transactionsError } = await supabaseAdmin
       .from('transactions')
       .select('*')
       .eq('account_id', account.id)
@@ -72,6 +75,23 @@ serve(async (req) => {
     const averageMonthlyIncome = deposits.length > 0 ? totalDeposits / Math.max(accountAgeMonths, 1) : 0;
     const averageMonthlyExpenses = withdrawals.length > 0 ? totalWithdrawals / Math.max(accountAgeMonths, 1) : 0;
 
+    // Determine maximum loan amount based on account age and balance rules
+    let maxLoanAmount = 0;
+    if (accountAgeMonths < 3) {
+      // Young account rules
+      if (averageMonthlyIncome < 100000) {
+        maxLoanAmount = 50000; // Restricted for low-income young accounts
+      } else {
+        maxLoanAmount = Math.min(currentBalance * 0.8, 200000); // Up to 80% of balance, max ₦200K
+      }
+    } else if (accountAgeMonths < 6) {
+      // Moderately aged account (3-6 months)
+      maxLoanAmount = Math.min(currentBalance * 1.2, 500000); // Up to 120% of balance, max ₦500K
+    } else {
+      // Mature account (6+ months)
+      maxLoanAmount = Math.min(currentBalance * 2, 5000000); // Up to 200% of balance, max ₦5M
+    }
+
     // Prepare context for AI
     const financialContext = `
 You are a loan assessment AI for Zenith Bank. Analyze the following financial data and determine loan eligibility.
@@ -96,12 +116,19 @@ LOAN REQUEST:
 - Purpose: ${loanPurpose}
 - Requested Term: ${loanTermMonths} months
 
-ASSESSMENT CRITERIA:
-1. Loan-to-Balance Ratio: Requested amount should not exceed 60% of current balance
-2. Debt Service Coverage: Net monthly cash flow should cover at least 1.5x the monthly payment
-3. Account Age: Minimum 1 month history preferred
-4. Transaction History: At least 3 transactions showing regular activity
-5. Balance Stability: Current balance should be positive and stable
+LENDING RULES (STRICTLY ENFORCE):
+1. Account Age < 3 months:
+   - If Average Monthly Income < ₦100,000: Maximum loan = ₦50,000
+   - If Average Monthly Income ≥ ₦100,000: Maximum loan = min(Balance × 0.8, ₦200,000)
+2. Account Age 3-6 months:
+   - Maximum loan = min(Balance × 1.2, ₦500,000)
+3. Account Age > 6 months:
+   - Maximum loan = min(Balance × 2, ₦5,000,000)
+4. Debt Service Coverage: Net monthly cash flow must cover at least 1.5× the monthly payment
+5. Transaction History: At least 5 transactions showing regular activity
+6. Balance Stability: Account must maintain positive balance consistently
+
+MAXIMUM APPROVABLE AMOUNT: ₦${maxLoanAmount.toLocaleString()} (based on the rules above)
 
 Based on this analysis, provide a JSON response with:
 {
