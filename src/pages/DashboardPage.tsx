@@ -25,6 +25,9 @@ interface BankAccount {
   currency: string;
   status: string;
   created_at: string;
+  bank_provider: 'zenith' | 'opay';
+  external_reference?: string;
+  last_synced?: string;
 }
 
 const DashboardPage = () => {
@@ -70,7 +73,12 @@ const DashboardPage = () => {
       if (error) {
         console.error("Error fetching bank accounts:", error);
       } else if (data) {
-        setBankAccounts(data);
+        setBankAccounts(data.map((account: any) => ({
+          ...account,
+          bank_provider: account.bank_provider || 'zenith',
+          external_reference: account.external_reference || undefined,
+          last_synced: account.last_synced || undefined,
+        })) as BankAccount[]);
       }
       setLoadingBankAccounts(false);
     };
@@ -82,6 +90,28 @@ const DashboardPage = () => {
   const copyAccountNumber = (accountNumber: string) => {
     navigator.clipboard.writeText(accountNumber);
     toast.success("Account number copied to clipboard");
+  };
+
+  const getBankCardGradient = (provider: 'zenith' | 'opay') => {
+    switch(provider) {
+      case 'zenith':
+        return 'from-primary to-primary/80'; // Red
+      case 'opay':
+        return 'from-emerald-500 to-emerald-700'; // Green
+      default:
+        return 'from-gray-500 to-gray-700';
+    }
+  };
+
+  const getBankLabel = (provider: 'zenith' | 'opay') => {
+    switch(provider) {
+      case 'zenith':
+        return 'Zenith Bank Account';
+      case 'opay':
+        return 'OPay Merchant Account';
+      default:
+        return 'Bank Account';
+    }
   };
 
   const handleOfferClick = (route: string) => {
@@ -166,7 +196,7 @@ const DashboardPage = () => {
                   key={account.id}
                   className="relative overflow-hidden border-2 hover:border-primary/50 transition-all hover:-translate-y-1 duration-300 hover:shadow-lg"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/80 opacity-95"></div>
+                  <div className={`absolute inset-0 bg-gradient-to-br ${getBankCardGradient(account.bank_provider)} opacity-95`}></div>
                   <CardHeader className="relative z-10">
                     <div className="flex items-start justify-between mb-4">
                       <div className="p-3 bg-white/20 rounded-lg backdrop-blur-sm">
@@ -178,7 +208,7 @@ const DashboardPage = () => {
                     </div>
                     <CardTitle className="text-white text-xl">{account.account_name}</CardTitle>
                     <CardDescription className="text-white/80 font-medium">
-                      {account.account_type.charAt(0).toUpperCase() + account.account_type.slice(1)} Account
+                      {getBankLabel(account.bank_provider)}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="relative z-10 space-y-4">
@@ -221,6 +251,25 @@ const DashboardPage = () => {
                   </CardContent>
                 </Card>
               ))}
+              
+              {/* Add Bank Account Card */}
+              <Card className="border-2 border-dashed hover:border-emerald-500 transition-all hover:-translate-y-1 duration-300 cursor-pointer group">
+                <CardContent 
+                  className="flex flex-col items-center justify-center py-12 h-full"
+                  onClick={() => navigate("/add-bank-account")}
+                >
+                  <div className="p-4 bg-emerald-500/10 group-hover:bg-emerald-500/20 rounded-full mb-4 transition-colors">
+                    <Building2 className="h-8 w-8 text-emerald-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Add a Bank Account</h3>
+                  <p className="text-muted-foreground text-center text-sm mb-4">
+                    Connect external banks to view all your finances
+                  </p>
+                  <Button variant="outline" className="border-emerald-500 text-emerald-600 hover:bg-emerald-500/10">
+                    Add Account
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
           ) : (
             <Card className="border-2 border-dashed">
