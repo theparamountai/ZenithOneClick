@@ -121,12 +121,12 @@ const BankAccountPage = () => {
         <div className="grid md:grid-cols-3 gap-4 mb-6">
           <Button
             variant="outline"
-            className="h-24 flex-col gap-2"
-            disabled
+            className="h-24 flex-col gap-2 border-primary text-primary hover:bg-primary/10"
+            onClick={() => navigate(`/transaction-history/${accountNumber}`)}
           >
-            <FileText className="h-6 w-6 text-muted-foreground" />
-            <span className="text-sm">View Statement</span>
-            <span className="text-xs text-muted-foreground">(Demo)</span>
+            <FileText className="h-6 w-6" />
+            <span className="text-sm">View History</span>
+            <span className="text-xs">All transactions</span>
           </Button>
           <Button
             variant="outline"
