@@ -26,3 +26,6 @@ verify_jwt = true
 
 [functions.loan-agent]
 verify_jwt = true
+
+[functions.opay-balance]
+verify_jwt = true
