@@ -1,0 +1,68 @@
+export class AudioPlayer {
+  private audioQueue: string[] = [];
+  private isPlaying = false;
+  private currentAudio: HTMLAudioElement | null = null;
+
+  async play(base64Audio: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      try {
+        const audio = new Audio(`data:audio/mp3;base64,${base64Audio}`);
+        this.currentAudio = audio;
+
+        audio.onended = () => {
+          this.currentAudio = null;
+          resolve();
+        };
+
+        audio.onerror = () => {
+          this.currentAudio = null;
+          reject(new Error('Failed to play audio'));
+        };
+
+        audio.play().catch(reject);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  async addToQueue(base64Audio: string): Promise<void> {
+    this.audioQueue.push(base64Audio);
+    if (!this.isPlaying) {
+      await this.playQueue();
+    }
+  }
+
+  private async playQueue(): Promise<void> {
+    if (this.audioQueue.length === 0) {
+      this.isPlaying = false;
+      return;
+    }
+
+    this.isPlaying = true;
+    const audio = this.audioQueue.shift()!;
+
+    try {
+      await this.play(audio);
+    } catch (error) {
+      console.error('Error playing audio:', error);
+    }
+
+    await this.playQueue();
+  }
+
+  stop(): void {
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio = null;
+    }
+    this.audioQueue = [];
+    this.isPlaying = false;
+  }
+
+  isCurrentlyPlaying(): boolean {
+    return this.isPlaying;
+  }
+}
+
+export const audioPlayer = new AudioPlayer();
