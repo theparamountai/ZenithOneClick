@@ -54,22 +54,37 @@ const LoanChatInterface = ({ accountNumber }: LoanChatInterfaceProps) => {
 
   const extractLoanIntent = async (userMessage: string) => {
     try {
-      // Simple regex-based extraction
+      // Extract amount
       const amountMatch = userMessage.match(/₦?([\d,]+)(?:\s*(?:naira|NGN))?/i);
       const amount = amountMatch ? parseInt(amountMatch[1].replace(/,/g, '')) : null;
 
-      const monthsMatch = userMessage.match(/(\d+)\s*months?/i);
-      const months = monthsMatch ? parseInt(monthsMatch[1]) : 12; // default to 12 months
+      // Extract months - handle both numeric and written forms
+      let months = 12; // default
+      const numericMonthMatch = userMessage.match(/(\d+)\s*months?/i);
+      const writtenMonthMatch = userMessage.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s*months?/i);
+      
+      if (numericMonthMatch) {
+        months = parseInt(numericMonthMatch[1]);
+      } else if (writtenMonthMatch) {
+        const monthWords: Record<string, number> = {
+          one: 1, two: 2, three: 3, four: 4, five: 5, six: 6,
+          seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12
+        };
+        months = monthWords[writtenMonthMatch[1].toLowerCase()] || 12;
+      }
 
-      // Extract purpose (everything that's not amount or term)
+      // Extract purpose - clean and concise
       let purpose = userMessage
+        .toLowerCase()
         .replace(/₦?[\d,]+(?:\s*(?:naira|NGN))?/gi, '')
+        .replace(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s*months?/gi, '')
         .replace(/\d+\s*months?/gi, '')
-        .replace(/(?:for|to|need|want|get|request|apply)/gi, '')
+        .replace(/\b(can|i|make|a|loan|get|need|want|request|apply|for|my|to|of|the|is|period)\b/gi, '')
+        .replace(/\s+/g, ' ')
         .trim();
       
       if (!purpose || purpose.length < 3) {
-        purpose = "General purpose";
+        purpose = "personal use";
       }
 
       return {
