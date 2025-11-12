@@ -1,0 +1,28 @@
+project_id = "zespwbbtptcphyfutwwz"
+
+[functions.chat-agent]
+verify_jwt = true
+
+[functions.tts-agent]
+verify_jwt = true
+
+[functions.stt-agent]
+verify_jwt = true
+
+[functions.realtime-voice-agent]
+verify_jwt = true
+
+[functions.ocr-scanner]
+verify_jwt = true
+
+[functions.generate-account]
+verify_jwt = true
+
+[functions.generate-application]
+verify_jwt = true
+
+[functions.card-bot]
+verify_jwt = true
+
+[functions.loan-agent]
+verify_jwt = true
