@@ -66,7 +66,7 @@ export default function CardRequest() {
         </div>
       </header>
 
-      <main className="flex-1 container mx-auto px-4 py-6">
+      <main className="flex-1 container mx-auto px-4 py-6 pt-24">
         <div className="max-w-4xl mx-auto h-[calc(100vh-200px)] bg-card border rounded-lg shadow-sm">
           <CardChatInterface />
         </div>
