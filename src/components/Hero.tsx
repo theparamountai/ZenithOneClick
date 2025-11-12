@@ -50,7 +50,7 @@ const Hero = () => {
                 <Shield className="w-6 h-6 text-accent" />
               </div>
               <h3 className="font-semibold text-foreground">Bank-Level Security</h3>
-              <p className="text-sm text-foreground/70">Military-grade encryption and biometric verification</p>
+              <p className="text-sm text-foreground/70">AI-powered ID verification with encrypted credential storage</p>
             </div>
 
             <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-gradient-glass backdrop-blur-md border border-primary-foreground/10">
