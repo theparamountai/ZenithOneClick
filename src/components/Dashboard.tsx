@@ -64,7 +64,7 @@ const Dashboard = () => {
         <div className="text-center mb-16 animate-in fade-in slide-in-from-bottom-4 duration-1000">
           <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">Powered by AI</Badge>
           <h2 className="text-4xl md:text-5xl font-bold mb-4 text-foreground">
-            Your Pre-Qualified Offers
+            One Click Services
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Based on your financial profile, you're pre-approved for these instant-activation products
@@ -103,13 +103,6 @@ const Dashboard = () => {
                     ))}
                   </div>
                 </div>
-
-                <Button 
-                  onClick={offer.action}
-                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-6 rounded-xl shadow-card transition-all hover:shadow-glow group-hover:scale-105"
-                >
-                  Activate in 1 Click
-                </Button>
               </div>
             </div>
           ))}
