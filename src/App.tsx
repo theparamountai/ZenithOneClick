@@ -26,6 +26,8 @@ import LoanHistory from "./pages/LoanHistory";
 import LoanRequest from "./pages/LoanRequest";
 import LoanConfirmation from "./pages/LoanConfirmation";
 import TransactionHistory from "./pages/TransactionHistory";
+import AddBankAccount from "./pages/AddBankAccount";
+import ConnectOPay from "./pages/ConnectOPay";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -59,6 +61,8 @@ const App = () => (
           <Route path="/loan-request/:accountNumber" element={<ProtectedRoute><LoanRequest /></ProtectedRoute>} />
           <Route path="/loan-confirmation/:accountNumber" element={<ProtectedRoute><LoanConfirmation /></ProtectedRoute>} />
           <Route path="/transaction-history/:accountNumber" element={<ProtectedRoute><TransactionHistory /></ProtectedRoute>} />
+          <Route path="/add-bank-account" element={<ProtectedRoute><AddBankAccount /></ProtectedRoute>} />
+          <Route path="/connect-opay" element={<ProtectedRoute><ConnectOPay /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
