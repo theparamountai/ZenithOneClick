@@ -1,11 +1,17 @@
 import { useState } from "react";
 import { MessageSquare, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const FloatingChatbox = () => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Only show on home page and dashboard
+  if (location.pathname !== "/" && location.pathname !== "/dashboard") {
+    return null;
+  }
 
   const handleClick = () => {
     navigate('/quick-account');
