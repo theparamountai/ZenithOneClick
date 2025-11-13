@@ -186,16 +186,16 @@ export default function CardChatInterface({ onIntentDetected }: CardChatInterfac
   };
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-b from-gray-950 to-black">
+    <div className="flex flex-col h-full bg-gradient-to-b from-white to-gray-100">
       {/* Voice Controls - Floating */}
-      <div className="absolute top-4 right-4 z-10 flex items-center gap-2 bg-black/70 backdrop-blur-lg rounded-full px-4 py-2 border border-gray-800">
+      <div className="absolute top-4 right-4 z-10 flex items-center gap-2 bg-white/70 backdrop-blur-lg rounded-full px-4 py-2 border border-gray-300">
         <Switch
           id="auto-speak-card"
           checked={autoSpeak}
           onCheckedChange={setAutoSpeak}
           className="scale-75"
         />
-        <Label htmlFor="auto-speak-card" className="text-xs text-gray-300 cursor-pointer">
+        <Label htmlFor="auto-speak-card" className="text-xs text-gray-700 cursor-pointer">
           Auto-speak
         </Label>
         {isSpeaking && (
@@ -218,7 +218,7 @@ export default function CardChatInterface({ onIntentDetected }: CardChatInterfac
                 <AvatarFallback className={
                   message.role === "user"
                     ? "bg-gradient-to-br from-red-500 to-pink-500 text-white font-bold"
-                    : "bg-gradient-to-br from-gray-700 to-gray-800 text-white"
+                    : "bg-gradient-to-br from-gray-200 to-gray-300 text-gray-700"
                 }>
                   {message.role === "user" ? "Z" : <Sparkles className="h-4 w-4" />}
                 </AvatarFallback>
@@ -229,7 +229,7 @@ export default function CardChatInterface({ onIntentDetected }: CardChatInterfac
                 className={`max-w-[85%] md:max-w-[70%] rounded-3xl px-5 py-4 shadow-lg ${
                   message.role === "user"
                     ? "bg-gradient-to-br from-red-500 via-pink-500 to-purple-500 text-white"
-                    : "bg-gradient-to-br from-gray-800 to-gray-900 text-gray-100 border border-gray-700/50"
+                    : "bg-gradient-to-br from-gray-100 to-gray-200 text-gray-900 border border-gray-300"
                 }`}
               >
                 <p className="text-base leading-relaxed">{message.content}</p>
@@ -239,15 +239,15 @@ export default function CardChatInterface({ onIntentDetected }: CardChatInterfac
           {isLoading && (
             <div className="flex gap-3 items-start animate-fade-in">
               <Avatar className="h-8 w-8 md:h-10 md:w-10 shrink-0">
-                <AvatarFallback className="bg-gradient-to-br from-gray-700 to-gray-800 text-white">
+                <AvatarFallback className="bg-gradient-to-br from-gray-200 to-gray-300 text-gray-700">
                   <Sparkles className="h-4 w-4 animate-pulse" />
                 </AvatarFallback>
               </Avatar>
-              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl px-5 py-4 border border-gray-700/50">
+              <div className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl px-5 py-4 border border-gray-300">
                 <div className="flex space-x-2">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.1s]" />
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]" />
+                  <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" />
+                  <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce [animation-delay:0.1s]" />
+                  <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce [animation-delay:0.2s]" />
                 </div>
               </div>
             </div>
@@ -257,7 +257,7 @@ export default function CardChatInterface({ onIntentDetected }: CardChatInterfac
       </ScrollArea>
 
       {/* Input Area */}
-      <div className="border-t border-gray-800 bg-black/50 backdrop-blur-lg p-4 md:p-6">
+      <div className="border-t border-gray-300 bg-white/50 backdrop-blur-lg p-4 md:p-6">
         <div className="flex gap-2 items-end">
           <div className="flex-1 relative">
             <Input
@@ -266,7 +266,7 @@ export default function CardChatInterface({ onIntentDetected }: CardChatInterfac
               onKeyPress={(e) => e.key === "Enter" && !isListening && handleSend()}
               placeholder="Type your card request..."
               disabled={isLoading || isListening}
-              className="bg-gray-900 border-2 border-gray-800 focus:border-pink-500 text-white placeholder:text-gray-500 rounded-2xl h-14 pr-12 text-base transition-colors"
+              className="bg-white border-2 border-gray-300 focus:border-pink-500 text-gray-900 placeholder:text-gray-400 rounded-2xl h-14 pr-12 text-base transition-colors"
             />
             <Button
               onClick={handleVoiceInput}
@@ -274,7 +274,7 @@ export default function CardChatInterface({ onIntentDetected }: CardChatInterfac
               size="icon"
               variant="ghost"
               className={`absolute right-2 top-1/2 -translate-y-1/2 ${
-                isListening ? "text-red-500 animate-pulse" : "text-gray-400 hover:text-white"
+                isListening ? "text-red-500 animate-pulse" : "text-gray-500 hover:text-gray-900"
               }`}
             >
               {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
