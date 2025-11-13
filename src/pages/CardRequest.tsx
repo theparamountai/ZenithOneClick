@@ -47,27 +47,30 @@ export default function CardRequest() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/dashboard")}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold">Card Request</h1>
-            <p className="text-sm text-muted-foreground">
-              Chat with our AI to request your debit card
-            </p>
+    <div className="min-h-screen bg-black flex flex-col">
+      <header className="border-b border-gray-800 bg-gradient-to-r from-gray-950 to-gray-900 backdrop-blur-sm fixed top-0 left-0 right-0 z-50">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/dashboard")}
+              className="text-gray-300 hover:text-white"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold text-white">Request a Card</h1>
+              <p className="text-sm text-gray-400">
+                Chat with our AI to request your debit card
+              </p>
+            </div>
           </div>
         </div>
       </header>
 
       <main className="flex-1 container mx-auto px-4 py-6 pt-24">
-        <div className="max-w-4xl mx-auto h-[calc(100vh-200px)] bg-card border rounded-lg shadow-sm">
+        <div className="max-w-4xl mx-auto h-[calc(100vh-200px)] bg-gradient-to-b from-gray-950 to-black border border-gray-800 rounded-lg shadow-2xl overflow-hidden">
           <CardChatInterface />
         </div>
       </main>
