@@ -101,7 +101,7 @@ Features include:
 
 ## Project Info
 
-**URL**: https://lovable.dev/projects/300d14fb-78ef-426a-9e01-3c3d50fa8672
+**URL**: https://preview--oneclick-financial-ai.lovable.app/
 
 ## How can I edit this code?
 
