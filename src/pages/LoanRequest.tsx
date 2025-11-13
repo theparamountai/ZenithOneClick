@@ -61,28 +61,8 @@ const LoanRequest = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black pt-24 pb-12">
-      <div className="container mx-auto px-4 max-w-4xl">
-        <div className="mb-6 flex items-center gap-4">
-          <Button
-            variant="ghost"
-            onClick={() => navigate(`/loan-history/${accountNumber}`)}
-            className="text-gray-300 hover:text-white"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Loan History
-          </Button>
-        </div>
-
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Request a Loan</h1>
-          <p className="text-gray-400">
-            Tell us about your loan needs and our AI will assess your eligibility
-          </p>
-        </div>
-
-        <LoanChatInterface accountNumber={accountNumber!} />
-      </div>
+    <div className="h-screen w-full bg-gradient-to-b from-white to-gray-100 pt-16">
+      <LoanChatInterface accountNumber={accountNumber!} />
     </div>
   );
 };
