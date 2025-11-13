@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mic, Send, Loader2, CheckCircle, XCircle, TrendingUp, DollarSign, Volume2 } from "lucide-react";
+import { Mic, Send, Loader2, CheckCircle, XCircle, Sparkles, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { Switch } from "@/components/ui/switch";
@@ -301,55 +303,83 @@ const LoanChatInterface = ({ accountNumber }: LoanChatInterfaceProps) => {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <div className="p-3 border-b bg-muted/30 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="auto-speak" className="text-sm">Auto-speak responses</Label>
-            <Switch
-              id="auto-speak"
-              checked={autoSpeak}
-              onCheckedChange={setAutoSpeak}
-            />
-          </div>
+      <Card className="bg-gradient-to-b from-gray-950 to-black border-gray-800 overflow-hidden">
+        {/* Voice Controls - Floating */}
+        <div className="absolute top-4 right-4 z-10 flex items-center gap-2 bg-black/70 backdrop-blur-lg rounded-full px-4 py-2 border border-gray-800">
+          <Switch
+            id="auto-speak"
+            checked={autoSpeak}
+            onCheckedChange={setAutoSpeak}
+            className="scale-75"
+          />
+          <Label htmlFor="auto-speak" className="text-xs text-gray-300 cursor-pointer">
+            Auto-speak
+          </Label>
           {isSpeaking && (
-            <div className="flex items-center gap-2 text-sm text-primary">
-              <Volume2 className="h-4 w-4 animate-pulse" />
-              Speaking...
-            </div>
+            <Volume2 className="h-3 w-3 text-pink-500 animate-pulse" />
           )}
         </div>
-        <CardContent className="pt-6 space-y-4 max-h-[400px] overflow-y-auto">
-          {messages.map((message, index) => (
-            <div
-              key={index}
-              className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-            >
+
+        {/* Messages */}
+        <ScrollArea className="h-[400px] p-4 md:p-6">
+          <div className="space-y-6">
+            {messages.map((message, index) => (
               <div
-                className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                  message.role === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted"
+                key={index}
+                className={`flex gap-3 items-start animate-fade-in ${
+                  message.role === "user" ? "flex-row-reverse" : "flex-row"
                 }`}
               >
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                {/* Avatar */}
+                <Avatar className={`h-8 w-8 md:h-10 md:w-10 shrink-0 ${isSpeaking && message.role === "assistant" && index === messages.length - 1 ? 'animate-pulse' : ''}`}>
+                  <AvatarFallback className={
+                    message.role === "user"
+                      ? "bg-gradient-to-br from-red-500 to-pink-500 text-white font-bold"
+                      : "bg-gradient-to-br from-gray-700 to-gray-800 text-white"
+                  }>
+                    {message.role === "user" ? "Z" : <Sparkles className="h-4 w-4" />}
+                  </AvatarFallback>
+                </Avatar>
+
+                {/* Message Bubble */}
+                <div
+                  className={`max-w-[85%] md:max-w-[70%] rounded-3xl px-5 py-4 shadow-lg ${
+                    message.role === "user"
+                      ? "bg-gradient-to-br from-red-500 via-pink-500 to-purple-500 text-white"
+                      : "bg-gradient-to-br from-gray-800 to-gray-900 text-gray-100 border border-gray-700/50"
+                  }`}
+                >
+                  <p className="text-base leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                </div>
               </div>
-            </div>
-          ))}
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-muted rounded-lg px-4 py-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
+            ))}
+            {isLoading && (
+              <div className="flex gap-3 items-start animate-fade-in">
+                <Avatar className="h-8 w-8 md:h-10 md:w-10 shrink-0">
+                  <AvatarFallback className="bg-gradient-to-br from-gray-700 to-gray-800 text-white">
+                    <Sparkles className="h-4 w-4 animate-pulse" />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl px-5 py-4 border border-gray-700/50">
+                  <div className="flex space-x-2">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.1s]" />
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]" />
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </CardContent>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        </ScrollArea>
       </Card>
 
       {analysis && (
-        <Card className={analysis.eligible ? "border-green-500" : "border-destructive"}>
+        <Card className={`bg-gradient-to-br from-gray-900 to-gray-950 border-2 ${
+          analysis.eligible ? "border-green-500/50" : "border-red-500/50"
+        } backdrop-blur-lg`}>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-white">
               {analysis.eligible ? (
                 <>
                   <CheckCircle className="h-5 w-5 text-green-500" />
@@ -357,7 +387,7 @@ const LoanChatInterface = ({ accountNumber }: LoanChatInterfaceProps) => {
                 </>
               ) : (
                 <>
-                  <XCircle className="h-5 w-5 text-destructive" />
+                  <XCircle className="h-5 w-5 text-red-500" />
                   Loan Not Approved
                 </>
               )}
@@ -366,15 +396,15 @@ const LoanChatInterface = ({ accountNumber }: LoanChatInterfaceProps) => {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-muted-foreground">Maximum Amount</p>
-                <p className="text-xl font-bold">₦{analysis.max_loan_amount.toLocaleString()}</p>
+                <p className="text-sm text-gray-400">Maximum Amount</p>
+                <p className="text-xl font-bold text-white">₦{analysis.max_loan_amount.toLocaleString()}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Interest Rate</p>
-                <p className="text-xl font-bold">{analysis.suggested_interest_rate}% APR</p>
+                <p className="text-sm text-gray-400">Interest Rate</p>
+                <p className="text-xl font-bold text-white">{analysis.suggested_interest_rate}% APR</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Approval Confidence</p>
+                <p className="text-sm text-gray-400">Approval Confidence</p>
                 <div className="flex items-center gap-2">
                   <Badge variant={analysis.approval_confidence >= 70 ? "default" : "secondary"}>
                     {analysis.approval_confidence}%
@@ -383,16 +413,16 @@ const LoanChatInterface = ({ accountNumber }: LoanChatInterfaceProps) => {
               </div>
               {analysis.eligible && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Est. Monthly Payment</p>
-                  <p className="text-xl font-bold">₦{Math.round(analysis.monthly_payment).toLocaleString()}</p>
+                  <p className="text-sm text-gray-400">Est. Monthly Payment</p>
+                  <p className="text-xl font-bold text-white">₦{Math.round(analysis.monthly_payment).toLocaleString()}</p>
                 </div>
               )}
             </div>
 
             {analysis.risk_factors && analysis.risk_factors.length > 0 && (
               <div>
-                <p className="text-sm font-semibold mb-2">Risk Factors:</p>
-                <ul className="text-sm text-muted-foreground space-y-1">
+                <p className="text-sm font-semibold mb-2 text-white">Risk Factors:</p>
+                <ul className="text-sm text-gray-400 space-y-1">
                   {analysis.risk_factors.map((factor, idx) => (
                     <li key={idx}>• {factor}</li>
                   ))}
@@ -401,7 +431,7 @@ const LoanChatInterface = ({ accountNumber }: LoanChatInterfaceProps) => {
             )}
 
             {analysis.eligible && (
-              <Button onClick={handleProceedWithLoan} className="w-full" size="lg">
+              <Button onClick={handleProceedWithLoan} className="w-full bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600" size="lg">
                 Proceed with Loan Application
               </Button>
             )}
@@ -409,44 +439,45 @@ const LoanChatInterface = ({ accountNumber }: LoanChatInterfaceProps) => {
         </Card>
       )}
 
-      <Card>
+      <Card className="bg-gradient-to-br from-gray-900 to-gray-950 border-gray-800">
         <CardContent className="pt-6">
-          <div className="flex gap-2">
-            <Textarea
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendMessage();
-                }
-              }}
-              placeholder="Type your loan request here... (e.g., 'I need ₦20,000 for business inventory for 12 months')"
-              className="min-h-[100px]"
-              disabled={isLoading}
-            />
-          </div>
-          <div className="flex gap-2 mt-4">
-            <Button
-              onClick={isRecording ? stopRecording : startRecording}
-              variant="outline"
-              disabled={isLoading}
-            >
-              <Mic className={`h-4 w-4 mr-2 ${isRecording ? 'text-red-500' : ''}`} />
-              {isRecording ? "Stop Recording" : "Voice Input"}
-            </Button>
+          <div className="flex gap-2 items-end">
+            <div className="flex-1 relative">
+              <Input
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !isRecording) {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
+                placeholder="Type your loan request... (e.g., 'I need ₦20,000 for 12 months')"
+                disabled={isLoading || isRecording}
+                className="bg-gray-900 border-2 border-gray-800 focus:border-pink-500 text-white placeholder:text-gray-500 rounded-2xl h-14 pr-12 text-base transition-colors"
+              />
+              <Button
+                onClick={isRecording ? stopRecording : startRecording}
+                disabled={isLoading}
+                size="icon"
+                variant="ghost"
+                className={`absolute right-2 top-1/2 -translate-y-1/2 ${
+                  isRecording ? "text-red-500 animate-pulse" : "text-gray-400 hover:text-white"
+                }`}
+              >
+                <Mic className="h-5 w-5" />
+              </Button>
+            </div>
             <Button
               onClick={handleSendMessage}
-              disabled={!inputText.trim() || isLoading}
-              className="flex-1"
+              disabled={!inputText.trim() || isLoading || isRecording}
+              size="icon"
+              className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 h-14 w-14 rounded-2xl shadow-lg"
             >
               {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
-                <>
-                  <Send className="h-4 w-4 mr-2" />
-                  Send
-                </>
+                <Send className="h-5 w-5" />
               )}
             </Button>
           </div>
